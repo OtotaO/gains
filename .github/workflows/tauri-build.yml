@@ -66,7 +66,7 @@ jobs:
             -Password (ConvertTo-SecureString -String $env:WINDOWS_CERT_PWD -AsPlainText -Force)
 
       - name: Upload installers
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gains-${{ matrix.platform }}
           path: |
