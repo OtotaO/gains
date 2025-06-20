@@ -32,5 +32,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "updater": {
+    "active": true,
+    "endpoints": [
+      "https://your-bucket-or-gh-pages/releases/latest.json"
+    ]
   }
 }

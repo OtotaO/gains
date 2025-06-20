@@ -3,9 +3,29 @@
 
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
+import { check } from "@tauri-apps/api/updater";
 
 const overlay = document.getElementById("overlay") as HTMLElement;
 const micButton = document.getElementById("micButton") as HTMLButtonElement;
+
+// Updater button
+const updBtn = document.createElement("button");
+updBtn.textContent = "🔄";
+updBtn.style.cssText = "position:fixed;top:10px;right:90px;";
+updBtn.onclick = async () => {
+  const { shouldUpdate } = await check();
+  alert(shouldUpdate ? "Update downloading…" : "You're up-to-date!");
+};
+document.body.appendChild(updBtn);
+
+// Live captions overlay
+const cap = document.createElement("div");
+cap.style.cssText = `
+  position:fixed;bottom:12%;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.6);color:#fff;border-radius:6px;
+  padding:4px 12px;font-size:1.1rem;max-width:80%;
+`;
+document.body.appendChild(cap);
 
 // Listen for real ZMQ messages from the Rust bridge
 listen("bus-message", ({ payload }) => {
@@ -13,9 +33,11 @@ listen("bus-message", ({ payload }) => {
     
     if (msg.event === "asr.partial") {
         overlay.textContent = msg.text;
+        cap.textContent = msg.text;
     }
     if (msg.event === "gesture.nod") {
         overlay.textContent += " ✓";
+        cap.textContent = "";
         invoke("commit_text");
         console.log("Nod detected - committing text");
     }
