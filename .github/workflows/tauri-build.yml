@@ -1,0 +1,73 @@
+name: Build & Release GAINS Desktop
+
+on:
+  push:
+    tags:
+      - "v*.*.*"          # e.g. v0.3.0
+  workflow_dispatch:       # manual trigger button in GH UI
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, windows-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cache Rust cargo directories
+      - uses: Swatinem/rust-cache@v2
+
+      # Set up Node + pnpm and install deps
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+          run_install: true
+
+      # (Optional) inject signing keys / notarisation secrets
+      - name: Export env
+        run: |
+          echo "TAURI_PRIVATE_KEY=${{ secrets.TAURI_PRIVATE_KEY }}" >> $GITHUB_ENV
+
+      - name: Install Apple notarisation tool
+        if: runner.os == 'macOS'
+        run: brew install notarytool
+
+      - name: Decode Windows signing cert
+        if: runner.os == 'Windows'
+        run: |
+          echo "${{ secrets.WINDOWS_CERT_B64 }}" | base64 -d > code-sign.pfx
+
+      - name: Build GAINS
+        run: |
+          cd GAINS/tauri-app
+          pnpm tauri build --target universal-apple-dmg,msi,deb
+
+      - name: macOS notarise
+        if: runner.os == 'macOS'
+        run: |
+          xcrun notarytool submit \
+            src-tauri/target/release/bundle/dmg/*.dmg \
+            --apple-id $APPLE_ID --team-id $APPLE_TEAM_ID \
+            --password $APPLE_PWD --wait
+
+      - name: sign Windows MSI
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-AuthenticodeSignature `
+            -FilePath src-tauri/target/release/bundle/msi/*.msi `
+            -Certificate (Get-PfxCertificate code-sign.pfx) `
+            -TimestampServer "http://timestamp.digicert.com" `
+            -HashAlgorithm SHA256 `
+            -Password (ConvertTo-SecureString -String $env:WINDOWS_CERT_PWD -AsPlainText -Force)
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v3
+        with:
+          name: gains-${{ matrix.platform }}
+          path: |
+            GAINS/tauri-app/src-tauri/target/release/bundle
