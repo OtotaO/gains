@@ -54,4 +54,32 @@ micButton.addEventListener("click", () => {
     }, 2000);
 });
 
+async function openSettings() {
+  // Fetch current settings from Rust
+  const cfg: any = await invoke("get_settings");
+
+  // ── Silence-timeout prompt ──
+  const timeout = prompt(
+    "Silence timeout (seconds)",
+    String(cfg.silence_timeout_sec ?? 8)
+  );
+  if (timeout === null) return;
+  cfg.silence_timeout_sec = Number(timeout);
+
+  // ── ASR language prompt ──
+  const lang = prompt(
+    "ASR language (ISO-639-1 code: en, es, fr, de, …)",
+    cfg.asr_language ?? "en"
+  );
+  if (lang === null) return;
+  cfg.asr_language = lang.trim();
+
+  // Save back to YAML via Rust command
+  await invoke("save_settings", { cfg });
+
+  alert(
+    "Settings saved ✔︎\n\nRestart the ASR service to load the new model/language."
+  );
+}
+
 console.log("GAINS frontend loaded - listening for ZMQ messages"); 
