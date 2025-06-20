@@ -1,0 +1,19 @@
+# .gitignore
+# dependencies
+node_modules/
+.pnpm/
+# Tauri/Rust build output
+src-tauri/target/
+# common JS build output
+dist/
+build/
+# misc
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+
+# new – OS-/Editor-specific odds and ends
+*.swp
+.idea/
+.vscode/

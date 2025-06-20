@@ -1,0 +1,2 @@
+asr_language: en   # ISO code: en, es, fr, de, etc.
+asr_model: small   # small, base, medium (language-specific) 
