@@ -41,6 +41,10 @@ jobs:
         run: |
           echo "${{ secrets.WINDOWS_CERT_B64 }}" | base64 -d > code-sign.pfx
 
+      - name: Install CTranslate2 wheel
+        if: runner.os == 'Linux'
+        run: pip install ctranslate2==4.5.0 --extra-index-url https://download.openmmlab.com/ctranslate2-wheels/cu121
+
       - name: Build GAINS
         run: |
           cd GAINS/tauri-app

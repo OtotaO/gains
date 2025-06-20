@@ -1,5 +1,13 @@
 import yaml
 from pathlib import Path
+import os
+import time
+
+try:
+    from ctranslate2 import Generator as CT2
+    HAS_CT2 = True
+except ImportError:
+    HAS_CT2 = False
 
 def load_cfg():
     cfg_path = Path(__file__).parent.parent / "config" / "settings.yaml"
@@ -18,7 +26,10 @@ if not cache.exists():
     # Download model on first run
     WhisperModel(model_name).download(cache_dir=cache)
 
-try:
+if os.getenv("DEVICE") == "gpu" and HAS_CT2:
+    model_path = f"~/.gains_models/ctranslate2/{model_name}"
+    model = CT2(model_path, device="cuda", compute_type="float16")
+    use_ct2 = True
+else:
     model = WhisperModel(model_name, device=device, compute_type=compute)
-except:
-    model = WhisperModel(f"{model_size}.en", device=device, compute_type=compute)
+    use_ct2 = False

@@ -24,20 +24,25 @@ cap.style.cssText = `
   position:fixed;bottom:12%;left:50%;transform:translateX(-50%);
   background:rgba(0,0,0,.6);color:#fff;border-radius:6px;
   padding:4px 12px;font-size:1.1rem;max-width:80%;
+  transition: opacity 0.6s;
 `;
 document.body.appendChild(cap);
+
+let fadeTimer: any;
 
 // Listen for real ZMQ messages from the Rust bridge
 listen("bus-message", ({ payload }) => {
     const msg = payload as any;
     
     if (msg.event === "asr.partial") {
+        clearTimeout(fadeTimer);
         overlay.textContent = msg.text;
         cap.textContent = msg.text;
+        cap.style.opacity = "1";
     }
     if (msg.event === "gesture.nod") {
         overlay.textContent += " ✓";
-        cap.textContent = "";
+        fadeTimer = setTimeout(() => (cap.style.opacity = "0"), 1200);
         invoke("commit_text");
         console.log("Nod detected - committing text");
     }
