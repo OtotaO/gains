@@ -3,6 +3,7 @@ name = "gains"
 version = "0.1.0"
 description = "GAINS — Gesture-Assisted Intelligent Note Scribe (desktop shell)"
 edition = "2021"
+license = "Apache-2.0"
 
 [lib]
 # The `_lib` suffix is required so the lib name doesn't conflict with the
