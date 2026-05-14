@@ -1,0 +1,97 @@
+[project]
+name = "gains"
+version = "0.1.0"
+description = "Gesture-Assisted Intelligent Note Scribe — Python service mesh"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+
+# Bus + note exporter + plugin runner only — minimal install.
+dependencies = [
+    "pyzmq>=26.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+asr = [
+    "faster-whisper>=1.1.0",
+    "sounddevice>=0.5.1",
+    "numpy>=1.26",
+]
+asr-cuda = [
+    "faster-whisper>=1.1.0",
+    "sounddevice>=0.5.1",
+    "numpy>=1.26",
+    "ctranslate2>=4.6",
+    "nvidia-cublas-cu12",
+    "nvidia-cudnn-cu12>=9",
+]
+vision = [
+    "mediapipe>=0.10.20",
+    "opencv-python>=4.10",
+    "numpy>=1.26",
+]
+tts = [
+    "piper-tts>=1.2.0",
+]
+plugins = [
+    "openai>=1.50",
+]
+# Full developer install (also pulls test deps used by tests/)
+dev = [
+    "ruff>=0.13",
+    "pytest>=8.3",
+    "mypy>=1.13",
+    "pip-audit>=2.7",
+    "numpy>=1.26",
+]
+
+[project.scripts]
+gains-bus = "services.bus.hub:main"
+gains-asr = "services.asr.server:main"
+gains-tts = "services.tts.voice:main"
+gains-vision = "services.vision.nod:main"
+gains-notes = "services.notes.exporter:main"
+gains-plugins = "services.plugins.runner:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["services*", "plugins*"]
+exclude = ["tauri-app*", "tests*", "docs*", "scripts*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",     # pycodestyle / pyflakes
+    "I",                # import sorting
+    "UP",               # pyupgrade
+    "B",                # bugbear
+    "SIM",              # simplify
+    "RUF",              # ruff-specific
+]
+ignore = [
+    "E501",             # line length is handled by formatter
+    "B008",             # mutable defaults are fine for our config dicts
+    "RUF002",           # docstring "×" is intentional ("4×4 matrix")
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+ignore_missing_imports = true

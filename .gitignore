@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.python-version-pyenv
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Tauri / Rust
+target/
+**/target/
+**/dist/
+**/Cargo.lock.bak
+.cargo/
+
+# Node
+node_modules/
+.pnpm-store/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# GAINS runtime / build artefacts
+notes/
+benchmark_results_*.json
+~/.gains_models/
+.gains_models/
+
+# Secrets
+.env
+.env.*
+!.env.example

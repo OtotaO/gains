@@ -1,56 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GAINS</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background: #f0f0f0;
-        }
-        
-        #overlay {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            font-family: monospace;
-            font-size: 16px;
-            z-index: 1000;
-            max-width: 400px;
-            word-wrap: break-word;
-        }
-        
-        #micButton {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #007bff;
-            color: white;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 1000;
-        }
-        
-        #micButton:hover {
-            background: #0056b3;
-        }
-    </style>
-</head>
-<body>
-    <div id="overlay">GAINS - Speak and nod to commit</div>
-    <button id="micButton">🎤</button>
-    
-    <script type="module" src="./src/main.ts"></script>
-</body>
-</html> 
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Tauri + Leptos App</title>
+    <link data-trunk rel="css" href="styles.css" />
+    <link data-trunk rel="copy-dir" href="public" />
+    <link data-trunk rel="rust" data-wasm-opt="z" />
+  </head>
+  <body></body>
+</html>
