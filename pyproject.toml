@@ -15,12 +15,12 @@ dependencies = [
 [project.optional-dependencies]
 asr = [
     "faster-whisper>=1.1.0",
-    "sounddevice>=0.5.1",
+    "sounddevice>=0.5.5",
     "numpy>=1.26",
 ]
 asr-cuda = [
     "faster-whisper>=1.1.0",
-    "sounddevice>=0.5.1",
+    "sounddevice>=0.5.5",
     "numpy>=1.26",
     "ctranslate2>=4.6",
     "nvidia-cublas-cu12",
