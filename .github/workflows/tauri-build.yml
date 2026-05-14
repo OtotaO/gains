@@ -30,7 +30,7 @@ jobs:
           workspaces: tauri-app -> tauri-app/target
 
       - name: Install Trunk (Leptos build tool)
-        uses: jetli/trunk-action@v0.5.0
+        uses: jetli/trunk-action@v0.5.1
         with:
           version: latest
 
