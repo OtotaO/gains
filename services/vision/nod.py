@@ -20,12 +20,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-import cv2
-import mediapipe as mp
 import numpy as np
-import zmq
-from mediapipe.tasks import python as mp_tasks
-from mediapipe.tasks.python import vision as mp_vision
 
 log = logging.getLogger("gains.vision")
 
@@ -53,13 +48,24 @@ def ensure_model() -> Path:
 
 
 def pitch_from_matrix(matrix: np.ndarray) -> float:
-    """Extract pitch (X-axis rotation, degrees) from a 4×4 transformation matrix."""
+    """Extract pitch (X-axis rotation, degrees) from a 4×4 transformation matrix.
+
+    Uses YXZ Tait-Bryan extraction: ``atan2(-r[1,2], r[2,2])`` returns θ for
+    a pure X-rotation by θ, and is stable for the small additional yaw/roll
+    present in real head poses. Negative = head down (nod).
+    """
     r = matrix[:3, :3]
-    pitch_rad = float(np.arctan2(-r[2, 0], np.hypot(r[0, 0], r[1, 0])))
+    pitch_rad = float(np.arctan2(-r[1, 2], r[2, 2]))
     return float(np.degrees(pitch_rad))
 
 
 def main() -> None:
+    import cv2
+    import mediapipe as mp
+    import zmq
+    from mediapipe.tasks import python as mp_tasks
+    from mediapipe.tasks.python import vision as mp_vision
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",

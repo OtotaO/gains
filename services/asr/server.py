@@ -25,11 +25,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-import sounddevice as sd
 import yaml
-import zmq
-from faster_whisper import WhisperModel
 
 log = logging.getLogger("gains.asr")
 
@@ -67,6 +63,11 @@ def resolve_model_name(size: str, lang: str) -> str:
 
 
 def main() -> None:
+    import numpy as np
+    import sounddevice as sd
+    import zmq
+    from faster_whisper import WhisperModel
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -144,7 +145,7 @@ def main() -> None:
 
     block = int(cfg["sample_rate"] * cfg["block_ms"] / 1000)
 
-    def callback(indata: np.ndarray, _frames: int, _time_info: Any, status: sd.CallbackFlags) -> None:
+    def callback(indata, _frames, _time_info, status) -> None:
         if status:
             log.debug("audio status: %s", status)
         try:
