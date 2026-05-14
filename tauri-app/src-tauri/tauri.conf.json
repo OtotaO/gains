@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "gains",
+  "productName": "GAINS",
   "version": "0.1.0",
   "identifier": "com.gains.app",
   "build": {
@@ -13,13 +13,13 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "gains",
-        "width": 800,
+        "title": "GAINS",
+        "width": 900,
         "height": 600
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost"
     }
   },
   "bundle": {
@@ -33,10 +33,14 @@
       "icons/icon.ico"
     ]
   },
-  "updater": {
-    "active": true,
-    "endpoints": [
-      "https://your-bucket-or-gh-pages/releases/latest.json"
-    ]
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/OtotaO/gains/releases/latest/download/latest.json"
+      ],
+      "dialog": false,
+      "pubkey": "REPLACE_ME_WITH_PUBLIC_KEY_FROM_TAURI_SIGNER"
+    }
   }
 }
