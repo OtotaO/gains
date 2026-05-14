@@ -6,6 +6,12 @@ no-default-features = false
 [advisories]
 version = 2
 yanked = "deny"
+# We care about *security* advisories on transitive deps, but the
+# "unmaintained" advisory class produces a steady stream of noise from the
+# Tauri/Leptos ecosystem (GTK3 bindings, unic-*, proc-macro-error, …) — all
+# tracked upstream, none exploitable. Restrict that one class to direct
+# workspace deps; vulnerabilities still fire on every dep.
+unmaintained = "workspace"
 ignore = []
 
 [licenses]
