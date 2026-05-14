@@ -22,7 +22,7 @@ asr-cuda = [
     "faster-whisper>=1.1.0",
     "sounddevice>=0.5.5",
     "numpy>=2.4.4",
-    "ctranslate2>=4.6",
+    "ctranslate2>=4.7.1",
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12>=9",
 ]
