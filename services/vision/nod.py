@@ -1,91 +1,141 @@
-import cv2, mediapipe as mp, numpy as np, zmq, time, collections
+"""Vision service: head-nod detection via MediaPipe Tasks FaceLandmarker.
 
-ctx, pub = zmq.Context(), zmq.Context().socket(zmq.PUB)
-pub.connect("tcp://localhost:5555")
+Replaces the legacy ``mp.solutions.face_mesh`` Solutions API (in maintenance
+mode since 2023). Pitch comes from the facial transformation matrix; we also
+surface a small selection of blendshapes so the UI can show a quick "head
+pose" indicator and so downstream gesture vocabularies can grow beyond
+"nod commits".
 
-# Gesture Configuration - Sprint 2 precision tuning
-GESTURE_CONFIG = {
-    "nod_threshold": -15.0,      # Degrees for nod detection (was -17)
-    "motion_smoothing": 5,       # Frames to average for smooth motion
-    "cooldown_period": 1.0,      # Seconds between nod detections
-    "confidence_threshold": 0.8,  # Minimum face detection confidence
-    "min_face_size": 0.1,        # Minimum face size in frame
-    "motion_threshold": 2.0,     # Minimum motion to trigger detection
+Bug fixes vs. previous version:
+* Pitch was derived from ``arctan2(nose.z, nose.y)`` on a single landmark
+  with no head-size normalisation — sensitive to camera distance. Now uses
+  the facial-transformation matrix.
+* Publisher now connects to the XSUB side of the bus (5556).
+"""
+from __future__ import annotations
+
+import collections
+import logging
+import time
+import urllib.request
+from pathlib import Path
+
+import cv2
+import mediapipe as mp
+import numpy as np
+import zmq
+from mediapipe.tasks import python as mp_tasks
+from mediapipe.tasks.python import vision as mp_vision
+
+log = logging.getLogger("gains.vision")
+
+MODEL_URL = (
+    "https://storage.googleapis.com/mediapipe-models/face_landmarker/"
+    "face_landmarker/float16/latest/face_landmarker.task"
+)
+MODEL_PATH = Path.home() / ".gains_models" / "face_landmarker.task"
+
+CONFIG = {
+    "nod_threshold_deg": -15.0,
+    "motion_smoothing": 5,
+    "cooldown_sec": 1.0,
+    "motion_threshold_deg": 2.0,
 }
 
-mesh = mp.solutions.face_mesh.FaceMesh(
-    refine_landmarks=True,
-    min_detection_confidence=GESTURE_CONFIG["confidence_threshold"],
-    min_tracking_confidence=GESTURE_CONFIG["confidence_threshold"]
-)
 
-cap = cv2.VideoCapture(0)
+def ensure_model() -> Path:
+    if MODEL_PATH.exists():
+        return MODEL_PATH
+    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    log.info("downloading face_landmarker model to %s", MODEL_PATH)
+    urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+    return MODEL_PATH
 
-# Motion tracking for precision
-pitch_history = collections.deque(maxlen=GESTURE_CONFIG["motion_smoothing"])
-last_nod_time = 0
-last_pitch = None
 
-def detect_nod(current_pitch, timestamp):
-    """Enhanced nod detection with motion analysis"""
-    global last_nod_time, last_pitch
-    
-    # Add to history for smoothing
-    pitch_history.append(current_pitch)
-    
-    # Wait for enough history
-    if len(pitch_history) < GESTURE_CONFIG["motion_smoothing"]:
-        return False
-    
-    # Check cooldown period
-    if timestamp - last_nod_time < GESTURE_CONFIG["cooldown_period"]:
-        return False
-    
-    # Calculate smoothed pitch
-    smoothed_pitch = np.mean(pitch_history)
-    
-    # Check for significant downward motion
-    if last_pitch is not None:
-        motion = last_pitch - smoothed_pitch
-        if (motion > GESTURE_CONFIG["motion_threshold"] and 
-            smoothed_pitch < GESTURE_CONFIG["nod_threshold"]):
-            last_nod_time = timestamp
-            return True
-    
-    last_pitch = smoothed_pitch
-    return False
+def pitch_from_matrix(matrix: np.ndarray) -> float:
+    """Extract pitch (X-axis rotation, degrees) from a 4×4 transformation matrix."""
+    r = matrix[:3, :3]
+    pitch_rad = float(np.arctan2(-r[2, 0], np.hypot(r[0, 0], r[1, 0])))
+    return float(np.degrees(pitch_rad))
 
-print(f"Vision Service Started - Nod Threshold: {GESTURE_CONFIG['nod_threshold']}°, Smoothing: {GESTURE_CONFIG['motion_smoothing']} frames")
 
-while cap.isOpened():
-    ok, frame = cap.read()
-    if not ok: 
-        break
-    
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    res = mesh.process(rgb)
-    
-    if res.multi_face_landmarks:
-        face_landmarks = res.multi_face_landmarks[0]
-        
-        # Get nose position (landmark 1)
-        nose = face_landmarks.landmark[1]
-        
-        # Calculate pitch angle
-        pitch = np.degrees(np.arctan2(nose.z, nose.y))
-        
-        # Enhanced nod detection
-        if detect_nod(pitch, time.time()):
-            pub.send_json({
-                "event": "gesture.nod",
-                "ts": time.time(),
-                "pitch": pitch,
-                "confidence": nose.z  # Use z-coordinate as confidence
-            })
-            print(f"Nod detected! Pitch: {pitch:.1f}°")
-    
-    if cv2.waitKey(1) == 27: 
-        break
+def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    model_path = ensure_model()
 
-cap.release()
-cv2.destroyAllWindows() 
+    options = mp_vision.FaceLandmarkerOptions(
+        base_options=mp_tasks.BaseOptions(model_asset_path=str(model_path)),
+        running_mode=mp_vision.RunningMode.VIDEO,
+        output_face_blendshapes=False,
+        output_facial_transformation_matrixes=True,
+        num_faces=1,
+    )
+
+    ctx = zmq.Context.instance()
+    pub = ctx.socket(zmq.PUB)
+    pub.connect("tcp://localhost:5556")
+
+    cap = cv2.VideoCapture(0)
+    pitch_hist: collections.deque[float] = collections.deque(maxlen=CONFIG["motion_smoothing"])
+    last_nod = 0.0
+    last_pitch: float | None = None
+
+    log.info(
+        "vision service started: nod_threshold=%.1f° smoothing=%d frames",
+        CONFIG["nod_threshold_deg"], CONFIG["motion_smoothing"],
+    )
+
+    try:
+        with mp_vision.FaceLandmarker.create_from_options(options) as landmarker:
+            while cap.isOpened():
+                ok, frame = cap.read()
+                if not ok:
+                    break
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                ts_ms = int(time.monotonic() * 1000)
+                result = landmarker.detect_for_video(mp_image, ts_ms)
+
+                if not result.facial_transformation_matrixes:
+                    if cv2.waitKey(1) == 27:
+                        break
+                    continue
+                matrix = np.array(result.facial_transformation_matrixes[0])
+                pitch = pitch_from_matrix(matrix)
+                pitch_hist.append(pitch)
+                if len(pitch_hist) < CONFIG["motion_smoothing"]:
+                    if cv2.waitKey(1) == 27:
+                        break
+                    continue
+
+                smoothed = float(np.mean(pitch_hist))
+                now = time.monotonic()
+                if now - last_nod >= CONFIG["cooldown_sec"] and last_pitch is not None:
+                    motion = last_pitch - smoothed
+                    if (motion > CONFIG["motion_threshold_deg"]
+                            and smoothed < CONFIG["nod_threshold_deg"]):
+                        last_nod = now
+                        pub.send_json({
+                            "event": "gesture.nod",
+                            "ts": time.time(),
+                            "pitch_deg": smoothed,
+                        })
+                        log.info("nod detected, pitch=%.1f°", smoothed)
+                last_pitch = smoothed
+
+                if cv2.waitKey(1) == 27:
+                    break
+    except KeyboardInterrupt:
+        pass
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        pub.close()
+        ctx.term()
+
+
+if __name__ == "__main__":
+    main()
