@@ -25,8 +25,12 @@ pub struct BusPublisher {
 impl BusPublisher {
     pub fn new(ctx: &zmq::Context) -> Result<Self> {
         let socket = ctx.socket(zmq::PUB).context("create PUB socket")?;
-        socket.connect(BUS_PUB_ENDPOINT).context("connect PUB to bus")?;
-        Ok(Self { socket: Mutex::new(socket) })
+        socket
+            .connect(BUS_PUB_ENDPOINT)
+            .context("connect PUB to bus")?;
+        Ok(Self {
+            socket: Mutex::new(socket),
+        })
     }
 
     pub fn send(&self, value: &Value) -> Result<()> {
@@ -52,7 +56,8 @@ pub fn spawn_subscriber(app: AppHandle, ctx: zmq::Context) {
 
 fn run_subscriber(app: &AppHandle, ctx: &zmq::Context) -> Result<()> {
     let sub = ctx.socket(zmq::SUB).context("create SUB socket")?;
-    sub.connect(BUS_SUB_ENDPOINT).context("connect SUB to bus")?;
+    sub.connect(BUS_SUB_ENDPOINT)
+        .context("connect SUB to bus")?;
     sub.set_subscribe(b"").context("subscribe to all topics")?;
     tracing::info!(endpoint = BUS_SUB_ENDPOINT, "bus subscriber connected");
 

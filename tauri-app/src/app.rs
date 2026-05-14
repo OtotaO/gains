@@ -11,7 +11,8 @@ extern "C" {
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "event"], catch)]
-    async fn listen(event: &str, handler: &Closure<dyn FnMut(JsValue)>) -> Result<JsValue, JsValue>;
+    async fn listen(event: &str, handler: &Closure<dyn FnMut(JsValue)>)
+        -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "updater"], catch)]
     async fn check() -> Result<JsValue, JsValue>;
@@ -27,7 +28,10 @@ enum BusMessage {
     #[serde(rename = "text.committed")]
     TextCommitted { text: String },
     #[serde(rename = "plugin.rewrite")]
-    PluginRewrite { text: String, plugin: Option<String> },
+    PluginRewrite {
+        text: String,
+        plugin: Option<String>,
+    },
     #[serde(rename = "heartbeat")]
     Heartbeat,
     #[serde(other)]
@@ -52,7 +56,9 @@ pub fn App() -> impl IntoView {
             // The Tauri event payload is { event, id, payload, … }; we want `.payload`.
             let payload = js_sys::Reflect::get(&payload, &JsValue::from_str("payload"))
                 .unwrap_or(JsValue::NULL);
-            let Ok(msg) = serde_wasm_bindgen::from_value::<BusMessage>(payload) else { return; };
+            let Ok(msg) = serde_wasm_bindgen::from_value::<BusMessage>(payload) else {
+                return;
+            };
             match msg {
                 BusMessage::AsrPartial { text } => {
                     let trimmed = text.trim().to_owned();

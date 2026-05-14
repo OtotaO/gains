@@ -123,6 +123,7 @@ def test_pitch_from_matrix(pitch_deg: float, expected_sign: int) -> None:
     import math
 
     import numpy as np
+
     from services.vision.nod import pitch_from_matrix
 
     theta = math.radians(pitch_deg)

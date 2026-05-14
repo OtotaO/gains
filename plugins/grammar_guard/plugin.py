@@ -16,7 +16,6 @@ import os
 import time
 
 import zmq
-from openai import OpenAI
 
 log = logging.getLogger("gains.plugin.grammar_guard")
 
@@ -28,6 +27,8 @@ PROMPT = (
 
 
 def main() -> None:
+    from openai import OpenAI
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",

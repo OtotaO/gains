@@ -3,8 +3,11 @@ name: Build & Release GAINS Desktop
 on:
   push:
     tags:
-      - "v*.*.*"          # e.g. v0.3.0
-  workflow_dispatch:       # manual trigger button in GH UI
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -18,60 +21,73 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Cache Rust cargo directories
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-      # Set up Node + pnpm and install deps
-      - uses: pnpm/action-setup@v2
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tauri-app -> tauri-app/target
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
-          run_install: true
 
-      # (Optional) inject signing keys / notarisation secrets
-      - name: Export env
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: tauri-app/pnpm-lock.yaml
+
+      - name: Install Trunk (Leptos build tool)
+        run: cargo install --locked trunk@^0.21
+
+      - name: Install Tauri Linux deps
+        if: runner.os == 'Linux'
         run: |
-          echo "TAURI_PRIVATE_KEY=${{ secrets.TAURI_PRIVATE_KEY }}" >> $GITHUB_ENV
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
 
-      - name: Install Apple notarisation tool
-        if: runner.os == 'macOS'
-        run: brew install notarytool
+      - name: Set signing env
+        shell: bash
+        run: |
+          echo "TAURI_SIGNING_PRIVATE_KEY=${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" >> $GITHUB_ENV
+          echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" >> $GITHUB_ENV
 
       - name: Decode Windows signing cert
         if: runner.os == 'Windows'
-        run: |
-          echo "${{ secrets.WINDOWS_CERT_B64 }}" | base64 -d > code-sign.pfx
-
-      - name: Install CTranslate2 wheel
-        if: runner.os == 'Linux'
-        run: pip install ctranslate2==4.5.0 --extra-index-url https://download.openmmlab.com/ctranslate2-wheels/cu121
-
-      - name: Build GAINS
-        run: |
-          cd GAINS/tauri-app
-          pnpm tauri build --target universal-apple-dmg,msi,deb
-
-      - name: macOS notarise
-        if: runner.os == 'macOS'
-        run: |
-          xcrun notarytool submit \
-            src-tauri/target/release/bundle/dmg/*.dmg \
-            --apple-id $APPLE_ID --team-id $APPLE_TEAM_ID \
-            --password $APPLE_PWD --wait
-
-      - name: sign Windows MSI
-        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Set-AuthenticodeSignature `
-            -FilePath src-tauri/target/release/bundle/msi/*.msi `
-            -Certificate (Get-PfxCertificate code-sign.pfx) `
-            -TimestampServer "http://timestamp.digicert.com" `
-            -HashAlgorithm SHA256 `
-            -Password (ConvertTo-SecureString -String $env:WINDOWS_CERT_PWD -AsPlainText -Force)
+          [Convert]::FromBase64String("${{ secrets.WINDOWS_CERT_B64 }}") | `
+            Set-Content -Path code-sign.pfx -Encoding Byte
+
+      - name: Build & sign GAINS
+        uses: tauri-apps/tauri-action@v0
+        env:
+          # macOS code signing & notarisation
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+        with:
+          projectPath: tauri-app
+          tagName: ${{ github.ref_name }}
+          releaseName: "GAINS ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.platform == 'macos-latest' && '--target universal-apple-darwin' || '' }}
 
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
           name: gains-${{ matrix.platform }}
           path: |
-            GAINS/tauri-app/src-tauri/target/release/bundle
+            tauri-app/src-tauri/target/release/bundle
+            tauri-app/src-tauri/target/universal-apple-darwin/release/bundle
+          if-no-files-found: ignore
