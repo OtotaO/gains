@@ -14,12 +14,12 @@ dependencies = [
 
 [project.optional-dependencies]
 asr = [
-    "faster-whisper>=1.1.0",
+    "faster-whisper>=1.2.1",
     "sounddevice>=0.5.5",
     "numpy>=2.4.4",
 ]
 asr-cuda = [
-    "faster-whisper>=1.1.0",
+    "faster-whisper>=1.2.1",
     "sounddevice>=0.5.5",
     "numpy>=2.4.4",
     "ctranslate2>=4.7.1",
