@@ -1,0 +1,52 @@
+# lefthook.yml — BILLING-IMMUNE local CI gate for OtotaO/gains
+#
+# WHY: GitHub Actions gets account-level billing-blocked ("job not started —
+# payments failed / spending limit"), which silently kills CI on every private
+# repo at once. These hooks run the SAME checks as .github/workflows/ci.yml
+# locally at commit/push time, consuming ZERO CI minutes.
+#
+#   pre-commit = fast subset (ruff lint + cargo fmt check), target < 10s
+#   pre-push   = FULL gate = exact mirror of ci.yml (python + rust-backend +
+#                rust-frontend + cargo-deny audit), target ~1-2 min warm.
+#
+# BYPASS (use sparingly, e.g. WIP/emergency): git commit --no-verify
+#                                              git push   --no-verify
+#
+# Prereqs (see wiringSteps): pip install -e ".[dev]" ; rustup component add
+# clippy rustfmt ; rustup target add wasm32-unknown-unknown ; cargo install cargo-deny.
+
+pre-commit:
+  parallel: true
+  commands:
+    ruff:
+      glob: "*.py"
+      run: ruff check .
+    rustfmt:
+      root: "tauri-app/"
+      glob: "*.rs"
+      run: cargo fmt --all --check
+
+pre-push:
+  piped: true   # stop at first failure, same as CI gating a merge
+  commands:
+    1_ruff:
+      run: ruff check .
+    2_pytest:
+      run: pytest -ra
+    3_pip_audit:
+      # CI runs this with `|| true` (non-blocking). Keep advisory locally too.
+      run: pip-audit --strict --skip-editable || true
+    4_cargo_fmt:
+      root: "tauri-app/"
+      run: cargo fmt --all --check
+    5_cargo_clippy:
+      root: "tauri-app/src-tauri/"
+      run: cargo clippy --all-targets -- -D warnings
+    6_cargo_check:
+      root: "tauri-app/src-tauri/"
+      run: cargo check --all-targets
+    7_cargo_check_wasm:
+      root: "tauri-app/"
+      run: cargo check -p gains-ui --target wasm32-unknown-unknown
+    8_cargo_deny:
+      run: cargo deny --manifest-path tauri-app/src-tauri/Cargo.toml check bans licenses advisories sources
