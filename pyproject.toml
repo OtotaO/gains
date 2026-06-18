@@ -35,7 +35,7 @@ tts = [
     "piper-tts>=1.2.0",
 ]
 plugins = [
-    "openai>=1.50",
+    "openai>=2.43.0",
 ]
 # Full developer install (also pulls test deps used by tests/)
 dev = [
