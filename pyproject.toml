@@ -16,12 +16,12 @@ dependencies = [
 asr = [
     "faster-whisper>=1.2.1",
     "sounddevice>=0.5.5",
-    "numpy>=2.4.4",
+    "numpy>=2.4.6",
 ]
 asr-cuda = [
     "faster-whisper>=1.2.1",
     "sounddevice>=0.5.5",
-    "numpy>=2.4.4",
+    "numpy>=2.4.6",
     "ctranslate2>=4.7.1",
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12>=9.22.0.52",
@@ -29,7 +29,7 @@ asr-cuda = [
 vision = [
     "mediapipe>=0.10.20",
     "opencv-python>=4.13.0.92",
-    "numpy>=2.4.4",
+    "numpy>=2.4.6",
 ]
 tts = [
     "piper-tts>=1.2.0",
@@ -43,7 +43,7 @@ dev = [
     "pytest>=9.0.3",
     "mypy>=1.13",
     "pip-audit>=2.10.0",
-    "numpy>=2.4.4",
+    "numpy>=2.4.6",
 ]
 
 [project.scripts]
