@@ -25,11 +25,11 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
 
-  - package-ecosystem: npm
-    directory: /tauri-app
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 3
+  # NOTE: there is deliberately no npm ecosystem here. tauri-app is a Trunk +
+  # Leptos (Rust/wasm) frontend with no package.json, so an npm entry produced a
+  # permanently failing weekly run ("Error during file fetching; aborting:
+  # /tauri-app/package.json not found"). tests/test_dependabot_config.py keeps
+  # every entry pointed at a manifest that actually exists.
 
   - package-ecosystem: github-actions
     directory: /
