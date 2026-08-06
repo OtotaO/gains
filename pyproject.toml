@@ -39,7 +39,7 @@ plugins = [
 ]
 # Full developer install (also pulls test deps used by tests/)
 dev = [
-    "ruff>=0.15.18",
+    "ruff>=0.16.1",
     "pytest>=9.1.1",
     "mypy>=2.3.0",
     "pip-audit>=2.10.1",
