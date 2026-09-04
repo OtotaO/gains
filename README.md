@@ -3,7 +3,10 @@
 GAINS is a multi-modal note-taking app: you **speak**, and **nod** to commit
 what you just said. Speech goes through Whisper, head pose through a
 MediaPipe Tasks pipeline, and committed text flows through a plug-in chain
-(e.g. grammar fixing) before landing in your notes. Everything runs locally.
+(e.g. `sample_rewriter`) before landing in your notes. Speech recognition,
+head pose and TTS run entirely on-device. Plug-ins may not: the bundled
+`grammar_guard` plug-in sends committed text to OpenAI, and is only active
+if you set `OPENAI_API_KEY`.
 
 ## Architecture
 
