@@ -9,7 +9,7 @@ license = { text = "Apache-2.0" }
 # Bus + note exporter + plugin runner only — minimal install.
 dependencies = [
     "pyzmq>=27.1.0",
-    "pyyaml>=6.0",
+    "pyyaml>=6.0.3",
 ]
 
 [project.optional-dependencies]
