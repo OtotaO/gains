@@ -27,7 +27,7 @@ asr-cuda = [
     "nvidia-cudnn-cu12>=9.24.0.43",
 ]
 vision = [
-    "mediapipe>=0.10.35",
+    "mediapipe>=1.0.1",
     "opencv-python>=4.13.0.92",
     "numpy>=2.4.6",
 ]
