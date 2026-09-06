@@ -28,7 +28,7 @@ asr-cuda = [
 ]
 vision = [
     "mediapipe>=0.10.35",
-    "opencv-python>=4.13.0.92",
+    "opencv-python>=5.0.0.93",
     "numpy>=2.4.6",
 ]
 tts = [
