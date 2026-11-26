@@ -13,11 +13,21 @@ updates:
         patterns:
           - "leptos*"
 
+  # The lockfile lives here (workspace root), so this is the entry that opens
+  # PRs. Group the Tauri and Leptos stacks so one PR carries each upgrade
+  # instead of several overlapping lockfile PRs.
   - package-ecosystem: cargo
     directory: /tauri-app
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      tauri:
+        patterns:
+          - "tauri*"
+      leptos:
+        patterns:
+          - "leptos*"
 
   - package-ecosystem: pip
     directory: /
