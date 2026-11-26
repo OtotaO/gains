@@ -27,7 +27,10 @@ asr-cuda = [
     "nvidia-cudnn-cu12>=9.24.0.43",
 ]
 vision = [
-    "mediapipe>=0.10.35",
+    # <1: mediapipe 1.0.1 hard-crashed gains-vision on Apple silicon when the graph
+    # opened its Metal service (DrishtiMetalHelper; PR #51, #64). Later 1.x releases
+    # are untested on hardware, so the cap covers the whole major.
+    "mediapipe>=0.10.35,<1",
     "opencv-python>=5.0.0.93",
     "numpy>=2.4.6",
 ]

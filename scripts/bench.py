@@ -76,28 +76,28 @@ class LatencyBenchmark:
                 }
                 print(f"🗣️  Speech detected: '{text[:50]}...'")
 
-        elif event_type == "gesture.nod":
-            # Calculate latency if we have speech start
-            if self.speech_start_times:
-                speech_start = min(self.speech_start_times.keys())
-                latency = timestamp - speech_start
+        elif event_type == "gesture.nod" and self.speech_start_times:
+            # Calculate latency from the speech start (last branch, so the
+            # combined condition cannot skip a later elif)
+            speech_start = min(self.speech_start_times.keys())
+            latency = timestamp - speech_start
 
-                if latency > 0 and latency < 10:  # Sanity check: 0-10 seconds
-                    self.latencies.append(latency)
-                    self.stats["completed_samples"] += 1
+            if latency > 0 and latency < 10:  # Sanity check: 0-10 seconds
+                self.latencies.append(latency)
+                self.stats["completed_samples"] += 1
 
-                    speech_info = self.speech_start_times[speech_start]
-                    print(f"✅ Nod detected! Latency: {latency:.3f}s | Text: '{speech_info['text'][:30]}...'")
+                speech_info = self.speech_start_times[speech_start]
+                print(f"✅ Nod detected! Latency: {latency:.3f}s | Text: '{speech_info['text'][:30]}...'")
 
-                    # Clear speech tracking for next sample
-                    self.speech_start_times.clear()
+                # Clear speech tracking for next sample
+                self.speech_start_times.clear()
 
-                    # Check if we have enough samples
-                    if self.stats["completed_samples"] >= self.sample_size:
-                        print(f"\n🎉 Collected {self.sample_size} samples! Calculating statistics...")
-                        self.calculate_statistics()
-                        self.print_results()
-                        return
+                # Check if we have enough samples
+                if self.stats["completed_samples"] >= self.sample_size:
+                    print(f"\n🎉 Collected {self.sample_size} samples! Calculating statistics...")
+                    self.calculate_statistics()
+                    self.print_results()
+                    return
 
     def calculate_statistics(self):
         """Calculate latency statistics"""
